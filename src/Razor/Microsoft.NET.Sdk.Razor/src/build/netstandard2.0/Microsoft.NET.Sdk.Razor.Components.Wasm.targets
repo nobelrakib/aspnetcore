@@ -29,8 +29,8 @@ Copyright (c) .NET Foundation. All rights reserved.
   <PropertyGroup>
     <StaticWebAssetBasePath Condition="'$(StaticWebAssetBasePath)' == ''">/</StaticWebAssetBasePath>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">browser-wasm</RuntimeIdentifier>
-    <SelfContained Condition="'$(SelfContained)' == ''">true</SelfContained>
     <PublishTrimmed Condition="'$(PublishTrimmed)' == '' AND '$(Configuration)' == 'Release'">true</PublishTrimmed>
+    <SelfContained>true</SelfContained>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 
     <!-- Turn off parts of the build that do not apply to WASM projects -->
@@ -40,9 +40,10 @@ Copyright (c) .NET Foundation. All rights reserved.
     <PreserveCompilationReferences>false</PreserveCompilationReferences>
     <AddRazorSupportForMvc>false</AddRazorSupportForMvc>
 
-    <!-- Internal properties -->
-    <_BlazorBootJsonIntermediateOutputPath>$(IntermediateOutputPath)blazor.build.boot.json</_BlazorBootJsonIntermediateOutputPath>
+    <BlazorWebAssemblyEnableDebugging Condition="'$(BlazorWebAssemblyEnableDebugging)' == '' AND '$(Configuration)' == 'Debug'">true</BlazorWebAssemblyEnableDebugging>
 
+    <!-- Internal properties -->
+    <_BlazorOutputPath>wwwroot\_framework\</_BlazorOutputPath>
   </PropertyGroup>
 
   <Target Name="_ResolveBlazorWasmOutputs" DependsOnTargets="ResolveReferences;ResolveRuntimePackAssets">
@@ -54,9 +55,6 @@ Copyright (c) .NET Foundation. All rights reserved.
     <ItemGroup>
       <_BlazorJSFile Include="$(_BlazorJSPath)" />
       <_BlazorJSFile Include="$(_BlazorJSMapPath)" Condition="Exists('$(_BlazorJSMapPath)')" />
-
-      <!-- First retarget ReferenceCopyLocalPaths to copy to the wwwroot directory -->
-      <ReferenceCopyLocalPaths DestinationSubDirectory="wwwroot\_framework\%(ReferenceCopyLocalPaths.DestinationSubDirectory)" />
 
       <!--
         ReferenceCopyLocalPaths includes satellite assemblies from referenced projects but are inexpicably missing
@@ -89,8 +87,9 @@ Copyright (c) .NET Foundation. All rights reserved.
         <TargetOutputPath>%(ReferenceSatellitePaths.DestinationSubDirectory)%(FileName)%(Extension)</TargetOutputPath>
       </_BlazorOutputWithTargetPath>
 
-      <_BlazorOutputWithTargetPath Include="@(IntermediateAssembly)">
+      <_BlazorOutputWithTargetPath Include="@(IntermediateAssembly);@(_DebugSymbolsIntermediatePath)">
         <BootManifestResourceType Condition="'%(Extension)' == '.dll'">assembly</BootManifestResourceType>
+        <BootManifestResourceType Condition="'%(Extension)' == '.pdb'">pdb</BootManifestResourceType>
         <BootManifestResourceName>%(FileName)%(Extension)</BootManifestResourceName>
         <TargetOutputPath>%(FileName)%(Extension)</TargetOutputPath>
       </_BlazorOutputWithTargetPath>
@@ -100,6 +99,9 @@ Copyright (c) .NET Foundation. All rights reserved.
       </_BlazorOutputWithTargetPath>
 
       <_BlazorWriteSatelliteAssembly Include="@(_BlazorOutputWithTargetPath->WithMetadataValue('BootManifestResourceType', 'satellite'))" />
+
+      <!-- Retarget ReferenceCopyLocalPaths to copy to the wwwroot directory -->
+      <ReferenceCopyLocalPaths DestinationSubDirectory="$(_BlazorOutputPath)\%(ReferenceCopyLocalPaths.DestinationSubDirectory)" />
     </ItemGroup>
 
     <!--
@@ -142,10 +144,10 @@ Copyright (c) .NET Foundation. All rights reserved.
 
     <!--
       We need to know at build time (not publish time) whether or not to include pdbs in the
-      blazor.boot.json file, so this is controlled by the BlazorEnableDebugging flag, whose
+      blazor.boot.json file, so this is controlled by the BlazorWebAssemblyEnableDebugging flag, whose
       default value is determined by the build configuration.
     -->
-    <ItemGroup Condition="'$(BlazorEnableDebugging)' != 'true'">
+    <ItemGroup Condition="'$(BlazorWebAssemblyEnableDebugging)' != 'true'">
       <_BlazorOutputWithTargetPath Remove="@(_BlazorOutputWithTargetPath)" Condition="'%(Extension)' == '.pdb'" />
     </ItemGroup>
 
@@ -188,13 +190,15 @@ Copyright (c) .NET Foundation. All rights reserved.
       <_BlazorBootResource Include="@(_BlazorOutputWithTargetPath->HasMetadata('BootManifestResourceType'))" />
     </ItemGroup>
 
+    <MakeDir Directories="$(OutDir)$(_BlazorOutputPath)" />
+
     <GenerateBlazoWebAssemblyBootJson
       AssemblyPath="@(IntermediateAssembly)"
       Resources="@(_BlazorBootResource)"
       DebugBuild="$(_IsDebugBuild)"
       LinkerEnabled="false"
       CacheBootResources="$(BlazorCacheBootResources)"
-      OutputPath="$(_BlazorBootJsonIntermediateOutputPath)"
+      OutputPath="$(OutDir)$(_BlazorOutputPath)blazor.boot.json"
       ConfigurationFiles="$(_BlazorConfigFile)" />
   </Target>
 
@@ -207,7 +211,7 @@ Copyright (c) .NET Foundation. All rights reserved.
 
   <Target Name="_BlazorWasmPrepareForRun" DependsOnTargets="_GenerateBuildBlazorBootJson">
     <ItemGroup>
-      <_ExternalStaticWebAsset Include="@(_BlazorOutputFile)">
+      <_ExternalStaticWebAsset Include="@(_BlazorOutputWithTargetPath)">
           <SourceId>$(PackageId)</SourceId>
           <!-- We just do this to keep the existing implementation happy. We will update this in the next release. -->
           <SourceType>Generated</SourceType>
@@ -230,7 +234,6 @@ Copyright (c) .NET Foundation. All rights reserved.
         ErrorIfLinkFails="$(ErrorIfLinkFailsForCopyFilesToOutputDirectory)"
         Condition="'$(CopyBuildOutputToOutputDirectory)' == 'true' and '$(SkipCopyBuildProduct)' != 'true'">
 
-      <Output TaskParameter="DestinationFiles" ItemName="MainAssembly"/>
       <Output TaskParameter="DestinationFiles" ItemName="FileWrites"/>
 
     </Copy>
