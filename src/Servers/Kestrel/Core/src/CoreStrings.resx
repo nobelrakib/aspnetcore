@@ -605,4 +605,7 @@ For more information on configuring HTTPS see https://go.microsoft.com/fwlink/?l
   <data name="HttpsConnectionEstablished" xml:space="preserve">
     <value>Connection "{connectionId}" established using the following protocol: {protocol}</value>
   </data>
+  <data name="HTTP2DefaultCiphersInsufficient" xml:space="preserve">
+    <value>HTTP/2 over TLS is not supported on Windows versions older than Windows 10 and Windows Server 2016 due to incompatible ciphers. Falling back to HTTP/1.1 instead.</value>
+  </data>
 </root>
