@@ -99,7 +99,6 @@ namespace Microsoft.AspNetCore.Server.Kestrel.FunctionalTests
 
         [ConditionalTheory]
         [MemberData(nameof(IPEndPointRegistrationDataDynamicPort))]
-
         [IPv6SupportedCondition]
         [MinimumOSVersion(OperatingSystems.Windows, WindowsVersions.Win10)] // Https only works on Win 10+
         public async Task RegisterIPEndPoint_DynamicPort_Success(IPEndPoint endPoint, string testUrl)
