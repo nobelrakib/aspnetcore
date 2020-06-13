@@ -29,7 +29,10 @@ Copyright (c) .NET Foundation. All rights reserved.
   <PropertyGroup>
     <StaticWebAssetBasePath Condition="'$(StaticWebAssetBasePath)' == ''">/</StaticWebAssetBasePath>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">browser-wasm</RuntimeIdentifier>
-    <PublishTrimmed Condition="'$(PublishTrimmed)' == '' AND '$(Configuration)' == 'Release'">true</PublishTrimmed>
+    <PublishTrimmed Condition="'$(PublishTrimmed)' == ''">true</PublishTrimmed>
+    <OutputType>exe</OutputType>
+    <BlazorWebAssemblyEnableDebugging Condition="'$(BlazorWebAssemblyEnableDebugging)' == '' AND '$(Configuration)' == 'Debug'">true</BlazorWebAssemblyEnableDebugging>
+
     <SelfContained>true</SelfContained>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 
@@ -40,10 +43,9 @@ Copyright (c) .NET Foundation. All rights reserved.
     <PreserveCompilationReferences>false</PreserveCompilationReferences>
     <AddRazorSupportForMvc>false</AddRazorSupportForMvc>
 
-    <BlazorWebAssemblyEnableDebugging Condition="'$(BlazorWebAssemblyEnableDebugging)' == '' AND '$(Configuration)' == 'Debug'">true</BlazorWebAssemblyEnableDebugging>
-
     <!-- Internal properties -->
     <_BlazorOutputPath>wwwroot\_framework\</_BlazorOutputPath>
+    <RunArguments>exec &quot;$(_BlazorCliLocation)&quot; serve --applicationpath &quot;$(TargetPath)&quot; $(AdditionalRunArguments)</RunArguments>
   </PropertyGroup>
 
   <Target Name="_ResolveBlazorWasmOutputs" DependsOnTargets="ResolveReferences;ResolveRuntimePackAssets">
@@ -53,8 +55,8 @@ Copyright (c) .NET Foundation. All rights reserved.
       satellite assemblies, this should include all assemblies needed to run the application.
     -->
     <ItemGroup>
-      <_BlazorJSFile Include="$(_BlazorJSPath)" />
-      <_BlazorJSFile Include="$(_BlazorJSMapPath)" Condition="Exists('$(_BlazorJSMapPath)')" />
+      <_BlazorJSFile Include="$(_BlazorWebAssemblyJSPath)" />
+      <_BlazorJSFile Include="$(_BlazorWebAssemblyJSMapPath)" Condition="Exists('$(_BlazorWebAssemblyJSMapPath)')" />
 
       <!--
         ReferenceCopyLocalPaths includes satellite assemblies from referenced projects but are inexpicably missing
@@ -213,9 +215,8 @@ Copyright (c) .NET Foundation. All rights reserved.
     <ItemGroup>
       <_ExternalStaticWebAsset Include="@(_BlazorOutputWithTargetPath)">
           <SourceId>$(PackageId)</SourceId>
-          <!-- We just do this to keep the existing implementation happy. We will update this in the next release. -->
           <SourceType>Generated</SourceType>
-          <ContentRoot>$(_BlazorOutputPath)</ContentRoot>
+          <ContentRoot>$([MSBuild]::NormalizeDirectory('$(TargetDir)wwwroot\'))</ContentRoot>
           <BasePath>$(StaticWebAssetBasePath)</BasePath>
         </_ExternalStaticWebAsset>
     </ItemGroup>
@@ -235,7 +236,6 @@ Copyright (c) .NET Foundation. All rights reserved.
         Condition="'$(CopyBuildOutputToOutputDirectory)' == 'true' and '$(SkipCopyBuildProduct)' != 'true'">
 
       <Output TaskParameter="DestinationFiles" ItemName="FileWrites"/>
-
     </Copy>
 
     <Message Importance="High" Text="$(MSBuildProjectName) (Blazor output) -&gt; -> $(TargetDir)wwwroot" Condition="'$(CopyBuildOutputToOutputDirectory)' == 'true' and '$(SkipCopyBuildProduct)'!='true'" />
@@ -253,9 +253,7 @@ Copyright (c) .NET Foundation. All rights reserved.
         Condition="'$(_DebugSymbolsProduced)'=='true' and '$(SkipCopyingSymbolsToOutputDirectory)' != 'true' and '$(CopyOutputSymbolsToOutputDirectory)'=='true'">
 
       <Output TaskParameter="DestinationFiles" ItemName="FileWrites"/>
-
     </Copy>
-
   </Target>
 
 </Project>

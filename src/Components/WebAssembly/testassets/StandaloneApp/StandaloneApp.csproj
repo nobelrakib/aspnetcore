@@ -6,12 +6,35 @@
     <FixupWebAssemblyHttpHandlerReference>true</FixupWebAssemblyHttpHandlerReference>
     <UseBlazorWebAssembly>true</UseBlazorWebAssembly>
     <RazorSdkDirectoryRoot>$(ArtifactsBinDir)Microsoft.NET.Sdk.Razor\$(Configuration)\sdk-output\</RazorSdkDirectoryRoot>
+
+    <_BlazorCliLocation>$(MSBuildThisFileDirectory)../../DevServer/src/bin/$(Configuration)/$(DefaultNetCoreTargetFramework)/blazor-devserver.dll</_BlazorCliLocation>
+    <RunCommand>dotnet</RunCommand>
   </PropertyGroup>
 
   <ItemGroup>
     <Reference Include="Microsoft.AspNetCore.Components.WebAssembly" />
     <Reference Include="System.Net.Http.Json" />
+
+     <!-- Add a project dependency without reference output assemblies to enforce build order -->
+    <!-- Applying workaround for https://github.com/microsoft/msbuild/issues/2661 and https://github.com/dotnet/sdk/issues/952 -->
+    <ProjectReference
+      Include="$(RepoRoot)src\Components\Web.JS\Microsoft.AspNetCore.Components.Web.JS.npmproj"
+      ReferenceOutputAssembly="false"
+      SkipGetTargetFrameworkProperties="true"
+      UndefineProperties="TargetFramework"
+      Private="false"
+      Condition="'$(BuildNodeJS)' != 'false' and '$(BuildingInsideVisualStudio)' != 'true'" />
   </ItemGroup>
+
+
+  <ItemGroup>
+    <Content Include="$(RepoRoot)src\Components\Web.JS\dist\$(Configuration)\blazor.webassembly.js*" LinkBase="wwwroot\_framework" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <Target Name="Blah" BeforeTargets="Compile">
+    <PropertyGroup>
+    </PropertyGroup>
+  </Target>
 
   <!-- A bit of msbuild magic to support reference resolver tests -->
   <Target Name="CreateReferenceHintPathsList" AfterTargets="ResolveAssemblyReferences">
