@@ -99,7 +99,9 @@ namespace Microsoft.AspNetCore.Server.Kestrel.FunctionalTests
 
         [ConditionalTheory]
         [MemberData(nameof(IPEndPointRegistrationDataDynamicPort))]
+
         [IPv6SupportedCondition]
+        [MinimumOSVersion(OperatingSystems.Windows, WindowsVersions.Win10)] // Https only works on Win 10+
         public async Task RegisterIPEndPoint_DynamicPort_Success(IPEndPoint endPoint, string testUrl)
         {
             await RegisterIPEndPoint_Success(endPoint, testUrl);
@@ -223,7 +225,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.FunctionalTests
         private Task RegisterAddresses_StaticPort_Success(string addressInput, string[] testUrls) =>
             RunTestWithStaticPort(port => RegisterAddresses_Success($"{addressInput}:{port}", testUrls, port));
 
-        [Fact]
+        [ConditionalFact]
+        [MinimumOSVersion(OperatingSystems.Windows, WindowsVersions.Win10)] // Https only works on Win 10+
         public async Task RegisterHttpAddress_UpgradedToHttpsByConfigureEndpointDefaults()
         {
             var hostBuilder = TransportSelector.GetWebHostBuilder()
@@ -601,7 +604,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.FunctionalTests
             }
         }
 
-        [Fact]
+        [ConditionalFact]
+        [MinimumOSVersion(OperatingSystems.Windows, WindowsVersions.Win10)] // Https only works on Win 10+
         public async Task DoesNotOverrideDirectConfigurationWithIServerAddressesFeature_IfPreferHostingUrlsFalse()
         {
             var useUrlsAddress = $"http://127.0.0.1:0";
@@ -641,7 +645,8 @@ namespace Microsoft.AspNetCore.Server.Kestrel.FunctionalTests
             }
         }
 
-        [Fact]
+        [ConditionalFact]
+        [MinimumOSVersion(OperatingSystems.Windows, WindowsVersions.Win10)] // Https only works on Win 10+
         public async Task DoesNotOverrideDirectConfigurationWithIServerAddressesFeature_IfAddressesEmpty()
         {
             var hostBuilder = TransportSelector.GetWebHostBuilder()
